@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes
 import datetime
 
 async def luck_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Sends a daily luck score."""
+    """今日能量指数（林晚晴版本）"""
     user = update.effective_user
     # Use user ID and date as seed for consistent daily luck
     today = datetime.date.today().isoformat()
@@ -17,21 +17,29 @@ async def luck_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     random.seed()
 
     comment = ""
+    emoji = ""
     if score >= 90:
-        comment = "大吉！诸事皆宜，福星高照！"
+        emoji = "✨"
+        comment = "今天的能量流动很顺畅！适合尝试新事物，或者推进一直想做的计划。"
     elif score >= 75:
-        comment = "吉！运势不错，适合进取。"
+        emoji = "🌟"
+        comment = "今天的状态不错，做事会比较顺利。适合主动出击，抓住机会。"
     elif score >= 60:
-        comment = "中平。平平淡淡才是真。"
+        emoji = "🌿"
+        comment = "平稳的一天。不会有什么大起大落，适合按部就班地完成手头的事。"
     elif score >= 40:
-        comment = "小凶。谨言慎行，通过努力可化解。"
+        emoji = "🍃"
+        comment = "今天可能会遇到一些小挑战，保持耐心和专注，慢慢就会过去。"
     else:
-        comment = "大凶... 咳咳，今日宜宅，不宜远行，多行善事。"
+        emoji = "🌧️"
+        comment = "今天的能量有点低。不如放慢节奏，多照顾自己，给自己一些休息的时间。"
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=f"🍀 **{user.first_name} 今日运势** 🍀\n\n"
-             f"📊 **幸运指数**: {score}/100\n"
-             f"📝 **大师点评**: {comment}",
+        text=f"{emoji} {user.first_name}，今天的能量指数\n\n"
+             f"📊 指数：{score}/100\n\n"
+             f"💭 {comment}\n\n"
+             f"记住，数字只是参考，你的心态和行动才是关键。\n\n"
+             f"— Elena 🌿",
         parse_mode='Markdown'
     )

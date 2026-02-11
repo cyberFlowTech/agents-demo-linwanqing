@@ -44,6 +44,14 @@ logs/
 # Cursor 特定文件
 .cursor/
 
+# 数据目录（SQLite 数据库 + 运行时 JSON 数据）
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.json
+data/user_memories/
+data/user_memories_backup/
+
 # 临时文件
 *.tmp
 *.bak

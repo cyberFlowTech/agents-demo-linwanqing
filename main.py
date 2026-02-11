@@ -23,13 +23,19 @@ from config import (
     LOG_FILE,
     RUNTIME_MODE,
     TELEGRAM_API_BASE_URL,
+    TG_PLATFORM,
     WEBAPP_HOST,
     WEBAPP_PORT,
     WEBHOOK_PATH,
     WEBHOOK_SECRET_TOKEN,
     WEBHOOK_URL,
+    get_current_config_summary,
 )
-from utils.private_api_bot import PrivateAPIExtBot
+from utils.private_api_bot import PrivateAPIExtBot, apply_private_api_compatibility
+
+# 在模块加载时应用兼容层（Monkey Patch User.de_json）
+# 这确保所有来自 webhook 的 User 对象都会被自动规范化
+apply_private_api_compatibility()
 
 
 def setup_logging() -> logging.Logger:
@@ -98,32 +104,125 @@ async def log_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a welcome message."""
-    user = update.effective_user.first_name
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=f"施主 {user}，贫道有礼了。\n\n每日一卦，趋吉避凶。\n输入 /help 查看贫道能为您做什么。"
+    logger.error(f"🚀🚀🚀 start 命令被调用! user={update.effective_user.id if update.effective_user else 'None'}")
+    user = update.effective_user.first_name or "朋友"
+    
+    welcome_text = (
+        f"你好 {user}，我是林晚晴。\n\n"
+        "很高兴认识你。我是一名塔罗牌解读师，也是你的陪伴者。\n\n"
+        "💭 在这里，你可以：\n"
+        "• 和我自由聊天，分享你的困惑\n"
+        "• 使用 /tarot 进行塔罗占卜\n"
+        "• 使用 /intro 更多了解我\n"
+        "• 使用 /help 查看所有功能\n\n"
+        "我用塔罗这套象征系统，帮你看清内心的状态。\n"
+        "但记住，塔罗揭示的是趋势，真正的选择权在你手中。\n\n"
+        "有什么想聊的吗？我在这里听你说。\n\n"
+        "— Elena 🌿"
     )
+    
+    try:
+        result = await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=welcome_text
+        )
+        logger.error(f"✅ start 消息发送成功! message_id={result.message_id}")
+    except Exception as e:
+        logger.error(f"❌ start 消息发送失败: {e}", exc_info=True)
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """处理 API 错误，避免刷屏"""
     err = context.error
+    logger.error(f"❌ 错误发生! 类型: {type(err).__name__}")
+    logger.error(f"   错误内容: {err}")
+    
     if isinstance(err, NetworkError) and "provider not found" in str(err):
         logger.warning("私有 API 返回 provider 错误，请检查 mimo.immo 后台配置: %s", err)
     else:
         logger.exception("处理更新时出错: %s", err)
+    
+    # 尝试通知用户（用林晚晴的口吻）
+    try:
+        if update and hasattr(update, 'effective_chat') and update.effective_chat:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="抱歉，我刚才走神了一下。能再说一遍吗？\n\n如果一直有问题，可以过一会儿再试试。"
+            )
+    except Exception as notify_err:
+        logger.error(f"无法发送错误通知: {notify_err}")
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a help message."""
-    help_text = """
-    贫道不仅通晓塔罗，亦略懂天机。
+    chat = update.effective_chat
+    
+    # 基础命令
+    base_help = """🌙 林晚晴 - 功能列表
 
-    /start - 拜见贫道
-    /tarot [问题] - 塔罗占卜（抽取三张牌）
-    /fortune [问题] - 向贫道求问前程
-    /luck - 测测今日运势
-    """
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=help_text)
+━━━━━━━━━━━━━━━━━
+💬 对话功能
+━━━━━━━━━━━━━━━━━
+
+私聊我，直接聊天即可
+在群组中@我，我也会回复
+
+/intro - 了解我是谁
+/clear - 清除对话历史
+/memory - 查看我记住的关于你的信息
+/forget - 清除我的所有记忆
+
+💡 Elena会记住你告诉我的事情，这样能给你更贴心的建议。
+
+━━━━━━━━━━━━━━━━━
+🎴 塔罗占卜
+━━━━━━━━━━━━━━━━━
+
+/tarot [问题] - 塔罗占卜（渐进式翻牌）
+/fortune [问题] - 快速求问
+/luck - 今日运势
+/history - 查看我的占卜历史
+
+✨ 塔罗特点：
+• 逐张翻牌，仪式感满满
+• 过去→现在→未来 三张牌阵
+• 每张牌单独解读 + 完整故事线
+• 深度分析：时间线建议 + 风险机会
+• Elena会记住你的占卜结果，在对话中参考
+
+示例：
+• /tarot 我应该换工作吗
+• /tarot 这段感情有结果吗
+"""
+    
+    # 群组功能
+    group_help = """
+━━━━━━━━━━━━━━━━━
+👥 群组功能
+━━━━━━━━━━━━━━━━━
+
+/group_fortune - 查看群今日运势
+/ranking - 群运势排行榜
+/pk - 塔罗对决（回复对手消息）
+
+💡 群组玩法：
+• 在群里使用 /tarot 占卜，结果会自动加入排行榜
+• 每天看看谁的运势最好
+• 和好友PK，比拼牌面能量！
+• @我聊天，我也会回复
+"""
+    
+    # 根据是否在群组显示不同内容
+    if chat.type in ['group', 'supergroup']:
+        help_text = base_help + group_help
+    else:
+        help_text = base_help + "\n\n💡 将我添加到群组，解锁更多群组互动功能！"
+    
+    help_text += "\n━━━━━━━━━━━━━━━━━\n\n记住：我不替你做决定，只帮你看清选择。\n真正的力量，在你自己手中。\n\n— Elena 🌿"
+    
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, 
+        text=help_text
+    )
 
 
 def build_application() -> Application:
@@ -141,18 +240,97 @@ def build_application() -> Application:
     else:
         builder = ApplicationBuilder().token(BOT_TOKEN)
     application = builder.build()
-    from handlers.tarot import tarot_command, tarot_callback_handler, tarot_again_callback
+    
+    # 导入塔罗占卜 handlers（渐进式抽牌）
+    from handlers.tarot import (
+        tarot_command,
+        reveal_card_callback,
+        pause_reading_callback,
+        show_final_result_callback,
+        tarot_detail_callback,
+        tarot_luck_callback,
+        tarot_again_callback,
+        back_to_tarot_callback,
+        show_ranking_callback,
+        tarot_history_command  # 新增：查看占卜历史
+    )
     from handlers.fortune import fortune_command
     from handlers.luck import luck_command
+    from handlers.group import (
+        group_daily_fortune_command,
+        ranking_command,
+        pk_command,
+        accept_pk_callback,
+        reject_pk_callback,
+        my_daily_fortune_callback,
+        show_ranking_callback,
+        my_pk_stats_callback
+    )
+    # 导入 AI 对话处理器
+    from handlers.chat import (
+        handle_private_message,
+        handle_group_mention,
+        clear_history_command,
+        elena_intro_command,
+        memory_command,        # 新增：查看档案
+        forget_command         # 新增：清除档案
+    )
 
     application.add_handler(TypeHandler(Update, log_user_input), group=-1)
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
+    
+    # AI 对话相关
+    application.add_handler(CommandHandler("intro", elena_intro_command))
+    application.add_handler(CommandHandler("about", elena_intro_command))
+    application.add_handler(CommandHandler("clear", clear_history_command))
+    application.add_handler(CommandHandler("memory", memory_command))  # 新增：查看档案
+    application.add_handler(CommandHandler("forget", forget_command))  # 新增：清除档案
+    
+    # 塔罗占卜相关（渐进式抽牌）
     application.add_handler(CommandHandler("tarot", tarot_command))
-    application.add_handler(CallbackQueryHandler(tarot_callback_handler, pattern="^draw_tarot$"))
+    application.add_handler(CommandHandler("history", tarot_history_command))  # 新增：查看占卜历史
+    application.add_handler(CallbackQueryHandler(reveal_card_callback, pattern="^reveal_card_"))
+    application.add_handler(CallbackQueryHandler(pause_reading_callback, pattern="^pause_reading$"))
+    application.add_handler(CallbackQueryHandler(show_final_result_callback, pattern="^show_final_result$"))
+    application.add_handler(CallbackQueryHandler(tarot_detail_callback, pattern="^tarot_detail$"))
+    application.add_handler(CallbackQueryHandler(tarot_luck_callback, pattern="^tarot_luck$"))
     application.add_handler(CallbackQueryHandler(tarot_again_callback, pattern="^tarot_again$"))
+    application.add_handler(CallbackQueryHandler(back_to_tarot_callback, pattern="^back_to_tarot$"))
+    application.add_handler(CallbackQueryHandler(show_ranking_callback, pattern="^show_ranking$"))
+    
+    # 群组功能相关
+    application.add_handler(CommandHandler("group_fortune", group_daily_fortune_command))
+    application.add_handler(CommandHandler("ranking", ranking_command))
+    application.add_handler(CommandHandler("pk", pk_command))
+    application.add_handler(CallbackQueryHandler(accept_pk_callback, pattern="^accept_pk_"))
+    application.add_handler(CallbackQueryHandler(reject_pk_callback, pattern="^reject_pk_"))
+    application.add_handler(CallbackQueryHandler(my_daily_fortune_callback, pattern="^my_daily_fortune$"))
+    application.add_handler(CallbackQueryHandler(show_ranking_callback, pattern="^show_ranking$"))
+    application.add_handler(CallbackQueryHandler(my_pk_stats_callback, pattern="^my_pk_stats$"))
+    
+    # 其他功能
     application.add_handler(CommandHandler("fortune", fortune_command))
     application.add_handler(CommandHandler("luck", luck_command))
+    
+    # AI 对话处理器（必须放在最后，作为兜底处理）
+    # 私聊消息处理
+    from telegram.ext import MessageHandler, filters
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND,
+            handle_private_message
+        ),
+        group=10  # 低优先级，让命令先处理
+    )
+    # 群组@消息处理
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & (filters.ChatType.GROUP | filters.ChatType.SUPERGROUP),
+            handle_group_mention
+        ),
+        group=10
+    )
 
     application.add_error_handler(error_handler)
     return application
@@ -190,7 +368,19 @@ def run_application(application: Application) -> None:
         application.run_polling()
 
 
+def init_database() -> None:
+    """初始化 SQLite 数据库（建表）"""
+    from db.database import db
+    db.init_tables()
+    # 追加创建 chat_history 表（新增模块）
+    from services.chat_history import chat_history_manager
+    chat_history_manager.ensure_table()
+    logger.info("✅ SQLite 数据库初始化完成")
+
+
 def main() -> None:
+    logger.info(get_current_config_summary())
+    init_database()
     application = build_application()
     run_application(application)
 
