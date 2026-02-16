@@ -57,26 +57,22 @@ def get_display_name(user) -> str:
 
 # ========== 安全回复：自动引用 + Zapry 降级 ==========
 
-async def safe_reply(message, text: str, quote: bool = True):
+async def safe_reply(message, text: str, quote: bool = True, reply_markup=None):
     """
     安全发送回复消息，自动引用原消息。
     如果平台不支持 reply_to_message_id（如 Zapry），则自动降级为普通消息。
-    
-    Args:
-        message: update.message 对象
-        text: 回复文本
-        quote: 是否引用原消息（默认 True）
     """
     if quote:
         try:
             return await message.reply_text(
                 text,
-                reply_to_message_id=message.message_id
+                reply_to_message_id=message.message_id,
+                reply_markup=reply_markup
             )
         except Exception as e:
             logger.debug(f"引用回复失败（平台可能不支持），降级为普通回复: {e}")
     
-    return await message.reply_text(text)
+    return await message.reply_text(text, reply_markup=reply_markup)
 
 
 # ========== 意图路由：自然语言 → 命令执行 ==========
@@ -301,7 +297,10 @@ async def handle_private_message(update: Update, context: ContextTypes.DEFAULT_T
         # 取消数据加载任务
         for task in [memory_task, history_task, tarot_task]:
             task.cancel()
-        await safe_reply(update.message, quota_result.message)
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = [[InlineKeyboardButton("💎 去充值", callback_data="go_recharge")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await safe_reply(update.message, quota_result.message, reply_markup=reply_markup)
         return
 
     # === 等待数据加载完成（已在后台并行运行） ===

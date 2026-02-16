@@ -97,7 +97,9 @@ async def tarot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     quota = await quota_manager.check_and_deduct("tarot_reading", user_id)
     if not quota.allowed:
-        await _safe_reply(update.message, _clean(quota.message))
+        keyboard = [[InlineKeyboardButton("💎 去充值", callback_data="go_recharge")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await _safe_reply(update.message, _clean(quota.message), reply_markup=reply_markup)
         return
 
     cost_hint = ""
