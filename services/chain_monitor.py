@@ -199,14 +199,32 @@ class ChainMonitor:
             self._processed_hashes = set(list(self._processed_hashes)[-5000:])
 
     # ------------------------------------------------------------------
-    # 自动归集（热钱包 → 冷钱包）
+    # 自动归集（热钱包 → 冷钱包）+ 自动 Gas 分发
     # ------------------------------------------------------------------
 
     async def _sweep_to_cold(self, hot_address: str, usdt_amount: float, deposit_tx_hash: str):
-        """将热钱包中的 USDT 归集到冷钱包"""
+        """
+        将热钱包中的 USDT 归集到冷钱包。
+
+        流程：
+        1. 检查 USDT 余额是否达到归集阈值（5 USDT）
+        2. 检查热钱包 BNB 是否足够 Gas
+        3. BNB 不足 → 自动从 Gas 中转钱包分发 BNB → 等待到账 → 重新归集
+        4. BNB 足够 → 直接归集
+        """
+        from services.wallet import SWEEP_THRESHOLD_USDT, GAS_DISTRIBUTE_AMOUNT_WEI
+
         try:
             if not BSC_WALLET_ADDRESS:
                 logger.warning("⚠️ 冷钱包地址未配置，跳过归集")
+                return
+
+            # 阈值检查：低于 5 USDT 不归集，等累积
+            if usdt_amount < SWEEP_THRESHOLD_USDT:
+                logger.info(
+                    f"💰 暂不归集 | 金额 {usdt_amount} < {SWEEP_THRESHOLD_USDT} USDT | "
+                    f"地址: {hot_address[:12]}... | 等待累积"
+                )
                 return
 
             user_id = await wallet_manager.get_user_by_address(hot_address)
@@ -222,27 +240,36 @@ class ChainMonitor:
             wallet_index = wallet["wallet_index"]
             wallet_address = wallet["address"]
 
-            # 获取 nonce 和 gas price
-            nonce = await self._get_nonce(wallet_address)
             gas_price = await self._get_gas_price()
-
-            if nonce is None or gas_price is None:
-                logger.error("❌ 获取 nonce/gasPrice 失败，跳过归集")
+            if gas_price is None:
+                logger.error("❌ 获取 gasPrice 失败，跳过归集")
                 return
 
-            # 检查 BNB 余额
+            # 检查热钱包 BNB 余额
             bnb_balance = await self._get_balance(wallet_address)
             gas_needed = 60000 * gas_price
+
             if bnb_balance < gas_needed:
-                logger.warning(
-                    f"⚠️ 热钱包 BNB 不足 | 地址: {wallet_address[:12]}... | "
-                    f"BNB: {bnb_balance / 1e18:.6f} | 需要: {gas_needed / 1e18:.6f}"
+                # BNB 不足 → 自动从 Gas 中转钱包分发
+                logger.info(
+                    f"⛽ 热钱包 BNB 不足，自动分发 Gas | 地址: {wallet_address[:12]}... | "
+                    f"当前: {bnb_balance / 1e18:.6f} BNB | 需要: {gas_needed / 1e18:.6f} BNB"
                 )
+                gas_sent = await self._distribute_gas(wallet_address, gas_price)
+                if not gas_sent:
+                    logger.warning(f"⚠️ Gas 分发失败，暂时无法归集 | 地址: {wallet_address[:12]}...")
+                    return
+                # 等待 Gas 到账（BSC 出块约 3 秒）
+                await asyncio.sleep(6)
+
+            # 执行归集
+            nonce = await self._get_nonce(wallet_address)
+            if nonce is None:
+                logger.error("❌ 获取 nonce 失败，跳过归集")
                 return
 
             usdt_amount_wei = int(usdt_amount * (10 ** USDT_DECIMALS))
 
-            # 签名归集交易
             raw_tx = wallet_manager.build_sweep_tx(
                 wallet_index=wallet_index,
                 usdt_amount_wei=usdt_amount_wei,
@@ -250,15 +277,14 @@ class ChainMonitor:
                 gas_price=gas_price,
             )
 
-            # 广播
             sweep_tx_hash = await self._send_raw_transaction(raw_tx)
             if sweep_tx_hash:
                 logger.info(
                     f"✅ 归集成功 | {wallet_address[:12]}... → 冷钱包 | "
                     f"金额: {usdt_amount} USDT | sweep_tx: {sweep_tx_hash[:20]}..."
                 )
-                from db.database import db
-                order = await db.fetch_one(
+                from db.database import db as _db
+                order = await _db.fetch_one(
                     """SELECT * FROM recharge_orders
                        WHERE deposit_address = ? AND tx_hash = ?
                        ORDER BY confirmed_at DESC LIMIT 1""",
@@ -271,6 +297,57 @@ class ChainMonitor:
 
         except Exception as e:
             logger.error(f"❌ 归集异常 | 地址: {hot_address[:12]}... | 错误: {e}", exc_info=True)
+
+    async def _distribute_gas(self, to_address: str, gas_price: int) -> bool:
+        """
+        从 Gas 中转钱包向热钱包发送 BNB（用于支付归集 Gas）
+
+        Gas 中转钱包 = HD 派生 index 9999 的地址。
+        管理员需要提前往这个地址打入 BNB。
+        """
+        from services.wallet import GAS_DISTRIBUTE_AMOUNT_WEI
+
+        try:
+            gas_wallet_address = wallet_manager.get_gas_wallet_address()
+
+            # 检查 Gas 钱包余额
+            gas_wallet_balance = await self._get_balance(gas_wallet_address)
+            distribute_cost = GAS_DISTRIBUTE_AMOUNT_WEI + 21000 * gas_price  # 分发金额 + Gas 费
+
+            if gas_wallet_balance < distribute_cost:
+                logger.warning(
+                    f"⚠️ Gas 中转钱包余额不足 | 地址: {gas_wallet_address[:12]}... | "
+                    f"余额: {gas_wallet_balance / 1e18:.6f} BNB | "
+                    f"需要: {distribute_cost / 1e18:.6f} BNB | "
+                    f"请管理员往 Gas 钱包打入 BNB"
+                )
+                return False
+
+            nonce = await self._get_nonce(gas_wallet_address)
+            if nonce is None:
+                return False
+
+            raw_tx = wallet_manager.build_gas_distribute_tx(
+                to_address=to_address,
+                amount_wei=GAS_DISTRIBUTE_AMOUNT_WEI,
+                nonce=nonce,
+                gas_price=gas_price,
+            )
+
+            tx_hash = await self._send_raw_transaction(raw_tx)
+            if tx_hash:
+                logger.info(
+                    f"⛽ Gas 分发成功 | {gas_wallet_address[:12]}... → {to_address[:12]}... | "
+                    f"金额: {GAS_DISTRIBUTE_AMOUNT_WEI / 1e18:.6f} BNB | tx: {tx_hash[:20]}..."
+                )
+                return True
+            else:
+                logger.error("❌ Gas 分发交易广播失败")
+                return False
+
+        except Exception as e:
+            logger.error(f"❌ Gas 分发异常: {e}", exc_info=True)
+            return False
 
     # ------------------------------------------------------------------
     # BSC RPC 调用（JSON-RPC 标准接口，免费无需 API Key）
