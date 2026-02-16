@@ -105,8 +105,6 @@ async def tarot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cost_hint = ""
     if not quota.is_free:
         cost_hint = f"\n\n💳 这次占卜用了 {quota.cost} USDT，余额还有 {quota.balance:.2f}"
-    elif quota.remaining_free >= 0:
-        cost_hint = f"\n\n🆓 今天还剩 {quota.remaining_free} 次免费占卜"
 
     # 初始化牌局
     context.user_data["tarot_question"] = question

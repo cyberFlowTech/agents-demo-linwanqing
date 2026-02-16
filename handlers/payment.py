@@ -13,10 +13,6 @@ from services.wallet import wallet_manager
 from config import (
     HD_MNEMONIC,
     PRICE_TAROT_DETAIL,
-    PRICE_TAROT_READING,
-    PRICE_AI_CHAT,
-    FREE_TAROT_DAILY,
-    FREE_CHAT_DAILY,
     ADMIN_USER_IDS,
 )
 import logging
@@ -116,30 +112,11 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"用掉了 {total_spent:.4f} USDT。\n\n"
         )
 
-    # 今日用量
-    tarot_left = daily_summary['tarot_free_remaining']
-    chat_left = daily_summary['chat_free_remaining']
-
-    text += "━━━━━━━━━━━━━━━━━\n"
-    text += "📋 今天的免费额度\n━━━━━━━━━━━━━━━━━\n\n"
-
-    if tarot_left > 0:
-        text += f"🎴 占卜还剩 {tarot_left} 次免费\n"
-    else:
-        text += f"🎴 占卜免费次数已用完（{PRICE_TAROT_READING} USDT/次）\n"
-
-    if chat_left > 0:
-        text += f"💬 聊天还剩 {chat_left} 次免费\n\n"
-    else:
-        text += f"💬 聊天免费次数已用完（{PRICE_AI_CHAT} USDT/次）\n\n"
-
     text += (
         f"━━━━━━━━━━━━━━━━━\n"
-        f"💎 价格一览\n━━━━━━━━━━━━━━━━━\n\n"
+        f"💎 服务说明\n━━━━━━━━━━━━━━━━━\n\n"
         f"📖 深度解读 {PRICE_TAROT_DETAIL} USDT/次\n"
-        f"🎴 占卜每天 {FREE_TAROT_DAILY} 次免费，之后 {PRICE_TAROT_READING} USDT/次\n"
-        f"💬 聊天每天 {FREE_CHAT_DAILY} 次免费，之后 {PRICE_AI_CHAT} USDT/次\n"
-        f"✨ 运势、求问、历史记录都是免费的~\n\n"
+        f"✨ 占卜、聊天、运势、求问、历史记录都可以用~\n\n"
         f"— 晚晴 🌿"
     )
 

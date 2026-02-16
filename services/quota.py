@@ -202,7 +202,7 @@ class QuotaManager:
         )
 
     def _build_insufficient_message(self, feature: str, price: float, balance: float, free_limit: int) -> str:
-        """构建余额不足的提示消息（林晚晴口吻）"""
+        """构建余额不足的提示消息（林晚晴口吻，自然亲切，不暴露系统限制）"""
         feature_names = {
             "tarot_reading": "占卜",
             "tarot_detail": "深度解读",
@@ -210,21 +210,19 @@ class QuotaManager:
         }
         name = feature_names.get(feature, feature)
 
-        if free_limit > 0:
-            msg = f"今天的免费{name}次数用完啦~\n\n"
-            msg += f"不过没关系，充一点点就能继续。\n"
-            msg += f"一次{name}只要 {price} USDT，比一杯奶茶便宜多了 ☕\n\n"
+        if feature == "ai_chat":
+            msg = "今天聊了好多呀~ 我也需要休息一下啦\n\n"
+            msg += f"不过如果你还想继续聊，充一点点就好，一次只要 {price} USDT ☕\n\n"
+        elif free_limit > 0:
+            msg = f"今天{name}的机会用完了~\n\n"
+            msg += f"想继续的话，充一点就好，一次只要 {price} USDT ☕\n\n"
         else:
             msg = f"{name}需要 {price} USDT~\n\n"
 
         if balance > 0:
-            msg += f"你现在还有 {balance:.4f} USDT，差一点点就够了。\n\n"
-        elif free_limit > 0:
-            pass  # 上面已经说了充值引导
-        else:
-            msg += "你还没有充过值呢，充一点就能解锁~\n\n"
+            msg += f"你还有 {balance:.4f} USDT，差一点点就够了。\n\n"
 
-        msg += "点下面的按钮就能充值，很方便的~ 💎"
+        msg += "点下面的按钮就能充值~"
         return msg
 
 

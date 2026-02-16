@@ -87,10 +87,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """帮助信息。"""
     chat = update.effective_chat
 
-    from config import (
-        FREE_TAROT_DAILY, FREE_CHAT_DAILY,
-        PRICE_TAROT_DETAIL, PRICE_TAROT_READING, PRICE_AI_CHAT,
-    )
+    from config import PRICE_TAROT_DETAIL
 
     base_help = f"""嘿，我来介绍一下我能做的事~ 🌙
 ━━━━━━━━━━━━━━━━━
@@ -125,16 +122,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • /tarot 这段感情有结果吗
 
 ━━━━━━━━━━━━━━━━━
-💎 关于充值
+💎 充值相关
 ━━━━━━━━━━━━━━━━━
 
-每天有免费额度：占卜 {FREE_TAROT_DAILY} 次，聊天 {FREE_CHAT_DAILY} 次。
-运势、快速求问、历史记录这些都不限~
+运势、快速求问、历史记录这些都是免费的~
 
-用完了也没关系，充一点 USDT 就能继续：
+如果需要深度解读或者更多服务，可以充一点 USDT：
 • 📖 深度解读 {PRICE_TAROT_DETAIL} USDT
-• 🎴 超额占卜 {PRICE_TAROT_READING} USDT
-• 💬 超额聊天 {PRICE_AI_CHAT} USDT
 
 /recharge - 充值
 /balance - 看看余额
