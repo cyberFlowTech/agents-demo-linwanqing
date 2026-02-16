@@ -89,6 +89,18 @@ ADMIN_USER_IDS = [uid.strip() for uid in os.getenv("ADMIN_USER_IDS", "").split("
 def get_current_config_summary() -> str:
     """返回当前配置摘要，方便调试"""
     wallet_display = f"{BSC_WALLET_ADDRESS[:10]}...{BSC_WALLET_ADDRESS[-6:]}" if BSC_WALLET_ADDRESS else "未配置"
+
+    # Gas 中转钱包地址（需要 HD_MNEMONIC 才能派生）
+    gas_wallet_display = "未配置"
+    if HD_MNEMONIC:
+        try:
+            from eth_account import Account
+            Account.enable_unaudited_hdwallet_features()
+            acct = Account.from_mnemonic(HD_MNEMONIC, account_path="m/44'/60'/0'/0/9999")
+            gas_wallet_display = acct.address
+        except Exception:
+            gas_wallet_display = "派生失败"
+
     return f"""
 ==================== 当前配置 ====================
 TG 平台: {TG_PLATFORM.upper()}
@@ -102,6 +114,8 @@ OpenAI Base URL: {OPENAI_BASE_URL or '官方API'}
 --- 付费功能 ---
 BSC 冷钱包: {wallet_display}
 HD 钱包: {'已配置' if HD_MNEMONIC else '未配置'}
+⛽ Gas 中转钱包: {gas_wallet_display}
+   (请往此地址打入 BNB，系统会自动分发给热钱包用于归集 Gas)
 定价: 深度解读 {PRICE_TAROT_DETAIL} / 塔罗 {PRICE_TAROT_READING} / 对话 {PRICE_AI_CHAT} USDT
 免费额度: 塔罗 {FREE_TAROT_DAILY}次/天, 对话 {FREE_CHAT_DAILY}次/天
 ================================================
