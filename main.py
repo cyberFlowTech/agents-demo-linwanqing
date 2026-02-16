@@ -10,9 +10,14 @@ import sys
 
 # SDK 路径（开发阶段，SDK 尚未发布到 PyPI）
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-SDK_PATH = os.path.normpath(os.path.join(_THIS_DIR, "..", "..", "related-codes", "zapry-bot-sdk-python"))
-if os.path.isdir(SDK_PATH) and SDK_PATH not in sys.path:
-    sys.path.insert(0, SDK_PATH)
+_SDK_CANDIDATES = [
+    os.path.normpath(os.path.join(_THIS_DIR, "..", "..", "related-codes", "zapry-bot-sdk-python")),  # 本地开发
+    os.path.normpath(os.path.join(_THIS_DIR, "..", "zapry-bot-sdk-python")),  # 服务器部署
+]
+for _sdk in _SDK_CANDIDATES:
+    if os.path.isdir(_sdk) and _sdk not in sys.path:
+        sys.path.insert(0, _sdk)
+        break
 
 from zapry_bot_sdk import ZapryBot, BotConfig
 from zapry_bot_sdk.utils.logger import setup_logging
