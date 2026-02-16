@@ -96,7 +96,7 @@ def get_current_config_summary() -> str:
         try:
             from eth_account import Account
             Account.enable_unaudited_hdwallet_features()
-            acct = Account.from_mnemonic(HD_MNEMONIC, account_path="m/44'/60'/0'/0/9999")
+            acct = Account.from_mnemonic(HD_MNEMONIC, account_path="m/44'/60'/0'/0/0")
             gas_wallet_display = acct.address
         except Exception:
             gas_wallet_display = "派生失败"

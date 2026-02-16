@@ -13,8 +13,8 @@ HD 热钱包服务
 - 冷钱包私钥不接触代码，归集只从热钱包单向转出
 
 地址分配规则：
-- index 0~9998：用户热钱包地址
-- index 9999：Gas 中转钱包（管理员往这里打 BNB，系统自动分发给热钱包）
+- index 0：Gas 中转钱包（管理员往这里打 BNB，系统自动分发给热钱包）
+- index 1~：用户热钱包地址（无上限）
 """
 
 import logging
@@ -40,10 +40,14 @@ ERC20_TRANSFER_SELECTOR = "0xa9059cbb"
 # USDT 精度（BSC 上是 18 位）
 USDT_DECIMALS = 18
 
-# Gas 中转钱包的固定 index
-GAS_WALLET_INDEX = 9999
+# Gas 中转钱包的固定 index（0 号地址，永远不分配给用户）
+# 管理员往这个地址打 BNB，系统自动分发给热钱包
+GAS_WALLET_INDEX = 0
 
-# 每次分发给热钱包的 BNB 数量（足够归集约 100 次）
+# 用户热钱包起始 index（从 1 开始，理论支持无限用户）
+USER_WALLET_START_INDEX = 1
+
+# 每次分发给热钱包的 BNB 数量（足够归集约 20 次）
 GAS_DISTRIBUTE_AMOUNT_WEI = 5_000_000_000_000_000  # 0.005 BNB
 
 # 归集阈值：热钱包 USDT 达到多少才归集（美元）
@@ -121,13 +125,16 @@ class WalletManager:
         if existing:
             return dict(existing)
 
-        # 2. 分配新索引（取当前最大 index + 1，跳过 Gas 钱包的 9999）
+        # 2. 分配新索引（从 USER_WALLET_START_INDEX 开始，跳过 index=0 的 Gas 钱包）
         for attempt in range(3):
             max_row = await db.fetch_one(
-                "SELECT MAX(wallet_index) as max_idx FROM user_wallets WHERE wallet_index < ?",
-                (GAS_WALLET_INDEX,)
+                "SELECT MAX(wallet_index) as max_idx FROM user_wallets WHERE wallet_index >= ?",
+                (USER_WALLET_START_INDEX,)
             )
-            next_index = (max_row["max_idx"] or -1) + 1 if max_row else 0
+            next_index = max(
+                (max_row["max_idx"] or 0) + 1,
+                USER_WALLET_START_INDEX
+            ) if max_row and max_row["max_idx"] is not None else USER_WALLET_START_INDEX
 
             # 3. 派生地址
             address = self.derive_address(next_index)
@@ -179,8 +186,8 @@ class WalletManager:
     async def get_all_addresses(self) -> set[str]:
         """获取所有用户热钱包地址集合（小写，不含 Gas 钱包）"""
         rows = await db.fetch_all(
-            "SELECT user_id, address FROM user_wallets WHERE wallet_index < ?",
-            (GAS_WALLET_INDEX,)
+            "SELECT user_id, address FROM user_wallets WHERE wallet_index >= ?",
+            (USER_WALLET_START_INDEX,)
         )
         addresses = set()
         for row in rows:
@@ -192,8 +199,8 @@ class WalletManager:
     async def load_cache(self):
         """启动时加载所有地址映射到缓存"""
         rows = await db.fetch_all(
-            "SELECT user_id, address FROM user_wallets WHERE wallet_index < ?",
-            (GAS_WALLET_INDEX,)
+            "SELECT user_id, address FROM user_wallets WHERE wallet_index >= ?",
+            (USER_WALLET_START_INDEX,)
         )
         for row in rows:
             self._address_to_user[row["address"].lower()] = row["user_id"]
