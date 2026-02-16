@@ -204,7 +204,11 @@ class ElenaAI:
             # 3. 紧贴用户消息前面，单独放一条 system message 强调用户档案和身份
             #    这样 AI 在回答时，最近的上下文就是用户的信息，不会和人设混淆
             user_context_parts = []
-            
+
+            # 注入晚晴当前的生活状态（让闲聊有真实感）
+            from services.daily_state import daily_state_manager
+            user_context_parts.append(daily_state_manager.format_for_ai())
+
             # 始终告诉 AI 用户的名字
             if user_name and user_name != "朋友":
                 user_context_parts.append(f"当前正在和你对话的用户叫「{user_name}」，请在对话中自然地称呼对方。")
@@ -258,11 +262,11 @@ class ElenaAI:
                 create_kwargs = dict(
                     model=OPENAI_MODEL,
                     messages=messages,
-                    temperature=0.7,
+                    temperature=0.8,
                     max_tokens=800,
                     top_p=0.9,
-                    frequency_penalty=0.3,
-                    presence_penalty=0.3,
+                    frequency_penalty=0.4,
+                    presence_penalty=0.4,
                 )
                 if tools_param:
                     create_kwargs["tools"] = tools_param
