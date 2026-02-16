@@ -69,10 +69,9 @@ async def tarot_history_command(update: Update, context: ContextTypes.DEFAULT_TY
     
     if not readings:
         text = _clean_text_for_zapry(
-            "你还没有占卜记录呢。\n\n"
-            "想开始的话，使用：\n"
-            "/tarot 你的问题\n\n"
-            "— Elena 🌿"
+            "你还没有占卜过呢~\n\n"
+            "想试试的话，发 /tarot 加上问题就好 🔮\n\n"
+            "— 晚晴 🌿"
         )
         await _safe_reply(update.message, text)
         return
@@ -92,9 +91,9 @@ async def tarot_history_command(update: Update, context: ContextTypes.DEFAULT_TY
             history_text += "━━━━━━━━━━━━━━━━━\n\n"
     
     total = await tarot_history_manager.get_reading_count(user_id)
-    history_text += f"共 {total} 次占卜\n\n"
-    history_text += "💡 提示：和我聊天时，我可以参考这些占卜结果，给你更连贯的建议。\n\n"
-    history_text += "— Elena 🌿"
+    history_text += f"一共占了 {total} 次~\n\n"
+    history_text += "聊天的时候我会参考这些记录，给你更连贯的建议 💭\n\n"
+    history_text += "— 晚晴 🌿"
     
     text = _clean_text_for_zapry(history_text)
     
@@ -232,17 +231,13 @@ async def tarot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 无参数 - 显示使用说明
     if not context.args:
         text = _clean_text_for_zapry(
-            "嗨，想问塔罗吗？\n\n"
-            "直接把问题跟在命令后面就好，像这样：\n"
-            "/tarot 你的问题\n\n"
-            "比如说：\n"
-            "• /tarot 我应该换工作吗\n"
-            "• /tarot 这段感情有结果吗\n"
-            "• /tarot 现在适合投资吗\n\n"
-            "问题越具体，我能给你的指引就越清晰。\n\n"
-            "对了，塔罗揭示的是趋势，不是命令。\n"
-            "真正的选择权，始终在你自己手中。\n\n"
-            "— Elena 🌿"
+            "想问什么呢？把问题告诉我~ 🔮\n\n"
+            "像这样就好：\n"
+            "/tarot 我应该换工作吗\n"
+            "/tarot 这段感情有结果吗\n"
+            "/tarot 现在适合投资吗\n\n"
+            "问题越具体，我看得越清楚哦~\n\n"
+            "— 晚晴 🌿"
         )
         await _safe_reply(update.message, text)
         return
@@ -252,13 +247,13 @@ async def tarot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # 问题长度验证
     if len(question) < 2:
-        await _safe_reply(update.message, "💭 问题有点太简短了呢，能说得再具体一些吗？")
+        await _safe_reply(update.message, "这个问题有点简短呢，能说得再具体一些吗？我好帮你看~ 💭")
         return
     
     if len(question) > 200:
         await _safe_reply(
             update.message,
-            "💭 问题有点太长了，能精简到200字以内吗？\n\n抓住核心的困惑，会更容易看清方向。"
+            "问题太长了呢，试试精简到 200 字以内？\n\n抓住核心的困惑就好，越聚焦越看得清~ 💭"
         )
         return
     
@@ -272,9 +267,9 @@ async def tarot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 如果是付费使用，附加提示
     cost_hint = ""
     if not quota_result.is_free:
-        cost_hint = f"\n\n💳 本次占卜消耗 {quota_result.cost} USDT，余额 {quota_result.balance:.4f} USDT"
+        cost_hint = f"\n\n💳 这次占卜用了 {quota_result.cost} USDT，余额还有 {quota_result.balance:.2f}"
     elif quota_result.remaining_free >= 0:
-        cost_hint = f"\n\n🆓 今日免费占卜剩余 {quota_result.remaining_free} 次"
+        cost_hint = f"\n\n🆓 今天还剩 {quota_result.remaining_free} 次免费占卜"
 
     # 初始化会话 - 准备抽牌
     context.user_data['tarot_question'] = question
@@ -323,7 +318,7 @@ async def reveal_card_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         if not spread:
             await context.bot.send_message(
                 chat_id=chat_id,
-                text="💭 抱歉，我们的连接好像断了。\n\n可以重新输入：\n/tarot 你的问题"
+                text="不好意思，刚才的牌局好像中断了 😅\n\n重新发 /tarot 加上问题，我们再来一次~"
             )
             return
         
@@ -424,7 +419,7 @@ async def reveal_card_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         _tarot_logger.error(f"翻牌时出错: {e}", exc_info=True)
         await context.bot.send_message(
             chat_id=chat_id,
-            text="⚠️ 翻牌时出现问题，请重新开始：\n/tarot 你的问题"
+            text="翻牌时出了点小状况 😅 重新发 /tarot 加上问题，我们再来~"
         )
 
 
@@ -480,7 +475,7 @@ async def show_final_result_callback(update: Update, context: ContextTypes.DEFAU
     if not spread:
         await context.bot.send_message(
             chat_id=chat_id,
-            text="💭 抱歉，我们的连接好像断了。\n\n可以重新输入：\n/tarot 你的问题"
+            text="不好意思，刚才的牌局好像中断了 😅\n\n重新发 /tarot 加上问题，我们再来一次~"
         )
         return
     
@@ -516,7 +511,7 @@ async def show_final_result_callback(update: Update, context: ContextTypes.DEFAU
     )
     
     # 按钮（深度解读标注价格）
-    detail_btn_text = f"📖 查看深度解读 ({PRICE_TAROT_DETAIL} USDT)"
+    detail_btn_text = f"📖 看完整故事线 ({PRICE_TAROT_DETAIL} USDT)"
     keyboard = [
         [InlineKeyboardButton(detail_btn_text, callback_data='tarot_detail')],
         [
@@ -550,7 +545,7 @@ async def tarot_detail_callback(update: Update, context: ContextTypes.DEFAULT_TY
     if not spread:
         await _send_message(
             query, context,
-            text="💭 抱歉，我们的连接好像断了。\n\n可以重新开始：\n/tarot 你的问题"
+            text="不好意思，刚才的牌局好像中断了 😅\n\n重新发 /tarot 加上问题，我们再来~"
         )
         return
     
@@ -572,7 +567,7 @@ async def tarot_detail_callback(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     # 扣费成功提示
-    cost_line = f"\n\n💳 本次消耗 {quota_result.cost} USDT，余额 {quota_result.balance:.4f} USDT"
+    cost_line = f"\n\n💳 这次深度解读用了 {quota_result.cost} USDT，余额还有 {quota_result.balance:.2f}"
 
     # 生成深度解读
     detailed_interpretation = tarot_deck.generate_spread_interpretation(spread, question)
@@ -622,7 +617,7 @@ async def tarot_luck_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     result_text = (
         f"{luck_reading}\n"
         f"━━━━━━━━━━━━━━━━━\n"
-        f"💫 每天只能抽取一次哦，明天再来吧"
+        f"💫 每天只能看一次运势哦，明天再来找我~"
     )
     
     keyboard = [[InlineKeyboardButton("🔮 塔罗占卜", callback_data='back_to_tarot')]]
@@ -640,13 +635,11 @@ async def tarot_again_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         context.user_data.pop(key, None)
     
     text = _clean_text_for_zapry(
-        "🔮 开始新的占卜\n"
-        "━━━━━━━━━━━━━━━━━\n"
-        "请输入：/tarot 你的问题\n\n"
-        "💡 比如：\n"
+        "好的，开始新的一局~ 🔮\n\n"
+        "发 /tarot 加上你的问题就好：\n"
         "• /tarot 我应该换工作吗\n"
         "• /tarot 这段感情有结果吗\n\n"
-        "有什么困惑，就直接问吧。我在这里听你说。"
+        "有什么困惑，尽管问~"
     )
     
     await _send_message(query, context, text)
@@ -657,13 +650,12 @@ async def back_to_tarot_callback(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     
     text = _clean_text_for_zapry(
-        "想占卜的话，直接这样输入：\n"
-        "/tarot 你的问题\n\n"
+        "想占卜的话，发 /tarot 加上问题就好~\n\n"
         "比如：\n"
         "• /tarot 我应该换工作吗\n"
         "• /tarot 这段感情有结果吗\n\n"
-        "有什么困惑，随时找我。\n\n"
-        "— Elena 🌿"
+        "有什么困惑，随时找我~ 🌙\n\n"
+        "— 晚晴 🌿"
     )
     
     await _send_message(query, context, text)

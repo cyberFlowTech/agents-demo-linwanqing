@@ -110,7 +110,7 @@ class QuotaManager:
                 cost=price,
                 remaining_free=0,
                 balance=balance,
-                message="扣费时出现问题，请稍后重试。"
+                message="抱歉，刚才出了点小状况，你再试一次好吗？"
             )
 
         # 扣费成功，也要计数
@@ -204,26 +204,27 @@ class QuotaManager:
     def _build_insufficient_message(self, feature: str, price: float, balance: float, free_limit: int) -> str:
         """构建余额不足的提示消息（林晚晴口吻）"""
         feature_names = {
-            "tarot_reading": "塔罗占卜",
+            "tarot_reading": "占卜",
             "tarot_detail": "深度解读",
-            "ai_chat": "AI 对话",
+            "ai_chat": "聊天",
         }
         name = feature_names.get(feature, feature)
 
         if free_limit > 0:
-            msg = (
-                f"今天的免费{name}次数已经用完了呢。\n\n"
-                f"继续使用需要 {price} USDT，"
-            )
+            msg = f"今天的免费{name}次数用完啦~\n\n"
+            msg += f"不过没关系，充一点点就能继续。\n"
+            msg += f"一次{name}只要 {price} USDT，比一杯奶茶便宜多了 ☕\n\n"
         else:
-            msg = f"使用{name}功能需要 {price} USDT，"
+            msg = f"{name}需要 {price} USDT~\n\n"
 
         if balance > 0:
-            msg += f"你当前余额 {balance:.4f} USDT，还差一点点。\n\n"
+            msg += f"你现在还有 {balance:.4f} USDT，差一点点就够了。\n\n"
+        elif free_limit > 0:
+            pass  # 上面已经说了充值引导
         else:
-            msg += "你还没有充值过呢。\n\n"
+            msg += "你还没有充过值呢，充一点就能解锁~\n\n"
 
-        msg += "使用 /recharge 充值 USDT 即可解锁~ 💎"
+        msg += "点下面的按钮就能充值，很方便的~ 💎"
         return msg
 
 

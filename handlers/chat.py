@@ -215,9 +215,9 @@ async def handle_private_message(update: Update, context: ContextTypes.DEFAULT_T
     if not user_message.strip():
         await safe_reply(
             update.message,
-            "我看到你发了一些内容，但我目前只能回复文字消息呢。\n\n"
-            "如果你想占卜，可以使用 /tarot 命令；\n"
-            "如果想聊聊天，直接文字告诉我就好。😊"
+            "我看到你发了东西，不过我暂时只能看懂文字呢~ 😊\n\n"
+            "想占卜的话发 /tarot 加上问题，\n"
+            "想聊天直接打字就好~"
         )
         return
     
@@ -378,9 +378,9 @@ async def handle_group_mention(update: Update, context: ContextTypes.DEFAULT_TYP
     if not clean_message:
         await safe_reply(
             update.message,
-            "你好呀，找我有什么事吗？\n\n"
-            "想占卜的话，可以使用 /tarot 命令；\n"
-            "想聊天的话，直接@我说就好。😊"
+            "你好呀，找我有事吗？😊\n\n"
+            "想占卜发 /tarot 加上问题，\n"
+            "想聊天直接 @我说就好~"
         )
         return
     
@@ -441,9 +441,9 @@ async def clear_history_command(update: Update, context: ContextTypes.DEFAULT_TY
     
     await safe_reply(
         update.message,
-        "好的，我们的对话记录已经清空了。\n\n"
+        "好的，我们的聊天记录清空了~\n\n"
         "就像翻开了新的一页。\n\n"
-        "有什么想聊的吗？我在这里听你说。😊"
+        "有什么想聊的吗？我在这里听你说 😊"
     )
     
     logger.info(f"🗑️ 对话历史已清除 | 用户: {user_id}")
@@ -460,21 +460,20 @@ async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_memory.get('conversation_count', 0) == 0:
         await safe_reply(
             update.message,
-            "我们还没有深入聊过天呢。\n\n"
-            "多和我说说话，我会慢慢了解你的。😊\n\n"
-            "想聊什么都可以，我在这里听你说。\n\n"
-            "— Elena 🌿"
+            "我们还没有好好聊过呢~\n\n"
+            "多和我说说话，我会慢慢了解你的 😊\n\n"
+            "— 晚晴 🌿"
         )
         return
     
     # 构建档案展示
-    memory_text = "🌙 我记得的关于你的事\n"
+    memory_text = "🌙 我记得的关于你的事~\n"
     memory_text += "━━━━━━━━━━━━━━━━━\n\n"
     
     # 基本信息
     basic = user_memory.get('basic_info', {})
     if any(basic.values()):
-        memory_text += "📋 基本信息:\n"
+        memory_text += "关于你：\n"
         if basic.get('age'):
             memory_text += f"  年龄: {basic['age']}岁\n"
         if basic.get('gender'):
@@ -512,10 +511,10 @@ async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         memory_text += f"📝 我的印象: {summary}\n\n"
     
     memory_text += "━━━━━━━━━━━━━━━━━\n\n"
-    memory_text += f"我们一起聊了 {user_memory.get('conversation_count', 0)} 次\n\n"
-    memory_text += "💡 这些信息帮助我更好地理解你，给你更贴心的建议。\n\n"
-    memory_text += "如果想清除这些记忆，可以使用 /forget 命令。\n\n"
-    memory_text += "— Elena 🌿"
+    memory_text += f"我们已经聊了 {user_memory.get('conversation_count', 0)} 次了~\n\n"
+    memory_text += "这些帮助我更懂你，给你更贴心的建议 💭\n\n"
+    memory_text += "想清除记忆的话，发 /forget 就好。\n\n"
+    memory_text += "— 晚晴 🌿"
     
     await safe_reply(update.message, memory_text)
     
@@ -533,9 +532,9 @@ async def forget_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_memory.get('conversation_count', 0) == 0:
         await safe_reply(
             update.message,
-            "其实我还没有记录关于你的信息呢。\n\n"
-            "不用担心，你的隐私很安全。😊\n\n"
-            "— Elena 🌿"
+            "其实我还没有记住你什么呢~\n\n"
+            "不用担心，你的隐私很安全 😊\n\n"
+            "— 晚晴 🌿"
         )
         return
     
@@ -554,18 +553,18 @@ async def forget_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if success:
         await safe_reply(
             update.message,
-            "好的，我已经忘记关于你的所有记忆了。\n\n"
+            "好的，我把关于你的一切都忘掉了~\n\n"
             "就像我们第一次见面一样。\n\n"
-            "如果以后想让我重新了解你，随时和我聊天就好。\n\n"
-            "— Elena 🌿"
+            "以后想让我重新了解你，随时来找我聊天就好 😊\n\n"
+            "— 晚晴 🌿"
         )
         logger.info(f"🗑️ 用户档案已删除 | 用户: {user_id}")
     else:
         await safe_reply(
             update.message,
-            "抱歉，清除记忆时出了点问题。\n\n"
-            "你可以过一会儿再试试。\n\n"
-            "— Elena 🌿"
+            "抱歉，清除的时候出了点小状况 😅\n\n"
+            "过一会儿再试试好吗？\n\n"
+            "— 晚晴 🌿"
         )
 
 
@@ -577,26 +576,25 @@ async def elena_intro_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     """
     
     intro_text = (
-        "🌙 你好，我是林晚晴\n"
+        "🌙 你好，我是晚晴\n"
         "━━━━━━━━━━━━━━━━━\n\n"
-        "很高兴认识你。我是一名塔罗牌解读师，现居上海。\n\n"
-        "我的主要工作包括：\n"
-        "• 线上一对一塔罗解读\n"
-        "• 塔罗工作坊教学\n"
-        "• 塔罗学习社群导师\n"
+        "很高兴认识你~ 我是一名塔罗牌解读师，现在住在上海。\n\n"
+        "平时主要做这些事：\n"
+        "• 一对一塔罗解读\n"
+        "• 塔罗工作坊和教学\n"
         "• 女性成长话题分享\n\n"
         "💫 关于塔罗\n\n"
-        "我在复旦读心理学硕士时，研究荣格的原型理论，那时第一次接触到塔罗。"
-        "我发现，塔罗不是算命工具，而是一套象征系统，可以帮助人们看清自己的内心状态。\n\n"
+        "我在复旦读心理学硕士的时候，研究荣格的原型理论，那时第一次接触到塔罗。"
+        "后来发现，塔罗不是算命，而是一套象征系统，能帮人看清自己的内心。\n\n"
         "🎴 我的理念\n\n"
-        "• 塔罗揭示的是趋势，而不是命令\n"
-        "• 我不会替你做决定，只会帮你看清选择\n"
+        "• 塔罗揭示的是趋势，不是命令\n"
+        "• 我不替你做决定，只帮你看清选择\n"
         "• 真正的力量，始终在你自己手中\n\n"
         "━━━━━━━━━━━━━━━━━\n\n"
-        "想占卜的话，使用 /tarot 命令；\n"
-        "想聊天的话，随时找我。\n\n"
-        "我在这里听你说。😊\n\n"
-        "— Elena 🌿"
+        "想占卜的话发 /tarot 加上问题，\n"
+        "想聊天的话，随时找我就好~\n\n"
+        "我在这里听你说 😊\n\n"
+        "— 晚晴 🌿"
     )
     
     await safe_reply(update.message, intro_text)
