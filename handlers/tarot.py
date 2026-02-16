@@ -61,7 +61,7 @@ def _get_spread(context) -> tuple:
 
 async def _send_session_expired(query, context):
     """牌局中断提示"""
-    await _send(query, context, "不好意思，刚才的牌局好像中断了 😅\n\n重新发 /tarot 加上问题，我们再来一次~")
+    await _send(query, context, "不好意思，刚才的牌局好像中断了 😅\n\n想重新占卜的话，告诉我你想问什么就好~")
 
 
 # ═══════════════════════════════════════════════════
@@ -74,13 +74,12 @@ async def tarot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not context.args:
         await _safe_reply(update.message, _clean(
-            "想问什么呢？把问题告诉我~ 🔮\n\n"
-            "像这样就好：\n"
-            "/tarot 我应该换工作吗\n"
-            "/tarot 这段感情有结果吗\n"
-            "/tarot 现在适合投资吗\n\n"
-            "问题越具体，我看得越清楚哦~\n\n"
-            "— 晚晴 🌿"
+            "想问什么呢？把你的问题告诉我~ 🔮\n\n"
+            "比如：\n"
+            "• 我应该换工作吗\n"
+            "• 这段感情有结果吗\n"
+            "• 现在适合投资吗\n\n"
+            "问题越具体，我看得越清楚哦~"
         ))
         return
 
@@ -143,7 +142,7 @@ async def reveal_card_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         card_num = int(query.data.split("_")[-1])
         spread, question = _get_spread(context)
         if not spread:
-            await context.bot.send_message(chat_id=chat_id, text="不好意思，牌局中断了 😅\n重新发 /tarot 加上问题再来~")
+            await context.bot.send_message(chat_id=chat_id, text="不好意思，刚才的牌局好像中断了 😅\n\n想重新占卜的话，告诉我你想问什么就好~")
             return
 
         await context.bot.send_message(chat_id=chat_id, text="🎴 翻牌中...")
@@ -155,15 +154,11 @@ async def reveal_card_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         sym = "🔸" if "正位" in card["orientation"] else "🔹"
 
         text = _clean(
-            f"🎴 第 {card_num} 张牌 - {position}\n"
-            f"━━━━━━━━━━━━━━━━━\n"
+            f"第 {card_num} 张牌翻开了... {position}\n\n"
             f"{sym} {card['name_full']}\n\n"
-            f"📍 位置意义: {pos_info['intro']}\n"
-            f"💭 解读方向: {pos_info['context']}\n"
-            f"━━━━━━━━━━━━━━━━━\n\n"
-            f"🔍 牌面信息:\n{card['deep_meaning']}\n\n"
-            f"━━━━━━━━━━━━━━━━━\n"
-            f"进度: {card_num}/3"
+            f"{pos_info['intro']}\n\n"
+            f"{card['deep_meaning']}\n\n"
+            f"({card_num}/3)"
         )
 
         keyboard = []
@@ -179,7 +174,7 @@ async def reveal_card_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
     except Exception as e:
         _logger.error(f"翻牌时出错: {e}", exc_info=True)
-        await context.bot.send_message(chat_id=chat_id, text="翻牌时出了点小状况 😅 重新发 /tarot 加上问题再来~")
+        await context.bot.send_message(chat_id=chat_id, text="翻牌时出了点小状况 😅\n\n想重新占卜的话，告诉我你想问什么就好~")
 
 
 # ═══════════════════════════════════════════════════
@@ -326,10 +321,8 @@ async def tarot_again_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
     await _send(query, context,
         "好的，开始新的一局~ 🔮\n\n"
-        "发 /tarot 加上你的问题就好：\n"
-        "• /tarot 我应该换工作吗\n"
-        "• /tarot 这段感情有结果吗\n\n"
-        "有什么困惑，尽管问~"
+        "告诉我你这次想问什么？\n\n"
+        "比如感情、事业、财运... 什么困惑都可以~"
     )
 
 # 从今日运势返回 → 复用 tarot_again

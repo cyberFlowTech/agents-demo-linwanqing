@@ -90,6 +90,8 @@ _TRANSITION_MESSAGES = {
     "help": None,  # help 命令自带完整回复
     "recharge": None,  # recharge 命令自带完整回复
     "balance": None,  # balance 命令自带完整回复
+    "notify_off": None,  # notify 命令自带回复
+    "notify_on": None,  # notify 命令自带回复
 }
 
 
@@ -151,6 +153,9 @@ async def _route_to_command(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     elif intent == "balance":
         from handlers.payment import balance_command
         await balance_command(update, context)
+
+    elif intent in ("notify_off", "notify_on"):
+        await notify_command(update, context)
 
     else:
         logger.warning(f"⚠️ 未处理的意图: {intent}")
@@ -260,8 +265,7 @@ async def handle_private_message(update: Update, context: ContextTypes.DEFAULT_T
         await safe_reply(
             update.message,
             "我看到你发了东西，不过我暂时只能看懂文字呢~ 😊\n\n"
-            "想占卜的话发 /tarot 加上问题，\n"
-            "想聊天直接打字就好~"
+            "想跟我说什么直接打字就好~"
         )
         return
     
@@ -428,8 +432,7 @@ async def handle_group_mention(update: Update, context: ContextTypes.DEFAULT_TYP
         await safe_reply(
             update.message,
             "你好呀，找我有事吗？😊\n\n"
-            "想占卜发 /tarot 加上问题，\n"
-            "想聊天直接 @我说就好~"
+            "想占卜的话告诉我你想问什么，想聊天直接 @我说就好~"
         )
         return
     
@@ -517,55 +520,55 @@ async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    # 构建档案展示
-    memory_text = "🌙 我记得的关于你的事~\n"
-    memory_text += "━━━━━━━━━━━━━━━━━\n\n"
-    
-    # 基本信息
+    # 构建自然语言风格的记忆展示
+    memory_text = "让我想想我记得你什么~\n\n"
+
+    # 基本信息（用自然语言串联）
     basic = user_memory.get('basic_info', {})
-    if any(basic.values()):
-        memory_text += "关于你：\n"
-        if basic.get('age'):
-            memory_text += f"  年龄: {basic['age']}岁\n"
-        if basic.get('gender'):
-            memory_text += f"  性别: {basic['gender']}\n"
-        if basic.get('location'):
-            memory_text += f"  位置: {basic['location']}\n"
-        if basic.get('occupation'):
-            memory_text += f"  职业: {basic['occupation']}\n"
-        if basic.get('school'):
-            memory_text += f"  学校: {basic['school']}\n"
+    basic_parts = []
+    if basic.get('age'):
+        basic_parts.append(f"{basic['age']}岁")
+    if basic.get('location'):
+        basic_parts.append(f"在{basic['location']}")
+    if basic.get('occupation'):
+        basic_parts.append(f"做{basic['occupation']}的")
+    elif basic.get('school'):
+        school_str = basic['school']
         if basic.get('major'):
-            memory_text += f"  专业: {basic['major']}\n"
-        memory_text += "\n"
-    
+            school_str += f"{basic['major']}专业"
+        basic_parts.append(f"在{school_str}读书")
+    if basic_parts:
+        memory_text += f"你是一位{'、'.join(basic_parts)}。\n\n"
+
     # 性格特征
     personality = user_memory.get('personality', {})
     if personality.get('traits'):
-        memory_text += f"💭 性格: {', '.join(personality['traits'])}\n\n"
-    
+        traits_str = '、'.join(personality['traits'][:4])
+        memory_text += f"感觉你这个人蛮{traits_str}的。\n\n"
+
     # 生活背景
     life_context = user_memory.get('life_context', {})
     if life_context.get('concerns'):
-        memory_text += f"🤔 当前困扰: {', '.join(life_context['concerns'][:3])}\n\n"
+        concerns_str = '、'.join(life_context['concerns'][:3])
+        memory_text += f"你最近好像在纠结{concerns_str}的事...\n\n"
     if life_context.get('goals'):
-        memory_text += f"🎯 目标: {', '.join(life_context['goals'][:3])}\n\n"
-    
+        goals_str = '、'.join(life_context['goals'][:3])
+        memory_text += f"你的目标是{goals_str}。\n\n"
+
     # 兴趣爱好
     interests = user_memory.get('interests', [])
     if interests:
-        memory_text += f"💝 兴趣: {', '.join(interests[:5])}\n\n"
-    
+        interests_str = '、'.join(interests[:4])
+        memory_text += f"你喜欢{interests_str}。\n\n"
+
     # 总结
     summary = user_memory.get('conversation_summary', '')
     if summary:
-        memory_text += f"📝 我的印象: {summary}\n\n"
-    
-    memory_text += "━━━━━━━━━━━━━━━━━\n\n"
-    memory_text += f"我们已经聊了 {user_memory.get('conversation_count', 0)} 次了~\n\n"
-    memory_text += "这些帮助我更懂你，给你更贴心的建议 💭\n\n"
-    memory_text += "想清除记忆的话，发 /forget 就好。\n\n"
-    memory_text += "— 晚晴 🌿"
+        memory_text += f"{summary}\n\n"
+
+    count = user_memory.get('conversation_count', 0)
+    memory_text += f"我们聊了{count}次了，希望能帮到你一些 😊\n\n"
+    memory_text += "如果有什么记错了跟我说，想让我忘掉也可以~"
     
     await safe_reply(update.message, memory_text)
     
@@ -642,8 +645,7 @@ async def elena_intro_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         "• 我不替你做决定，只帮你看清选择\n"
         "• 真正的力量，始终在你自己手中\n\n"
         "━━━━━━━━━━━━━━━━━\n\n"
-        "想占卜的话发 /tarot 加上问题，\n"
-        "想聊天的话，随时找我就好~\n\n"
+        "想占卜的话直接跟我说就好，想聊天也随时找我~\n\n"
         "我在这里听你说 😊\n\n"
         "— 晚晴 🌿"
     )
@@ -667,7 +669,7 @@ async def notify_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await proactive_scheduler.disable_user(user_id)
         await safe_reply(
             update.message,
-            "好的，我不会主动打扰你了~\n\n想重新开启的话，随时发 /notify 就好 😊"
+            "好的，我不会主动打扰你了~\n\n想重新开启的话，随时跟我说就好 😊"
         )
         logger.info(f"🔕 主动消息已关闭 | 用户: {user_id}")
     else:
@@ -679,6 +681,6 @@ async def notify_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🎂 你生日那天送祝福\n"
             "🌿 节气的时候提醒你\n"
             "💭 占卜几天后回访你的感受\n\n"
-            "不想收了随时发 /notify 关掉~"
+            "不想收了跟我说一声就好~"
         )
         logger.info(f"🔔 主动消息已开启 | 用户: {user_id}")

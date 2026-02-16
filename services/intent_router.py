@@ -82,6 +82,8 @@ _KEYWORD_PATTERNS = [
     (re.compile(r"^(有什么功能|怎么用|能做什么|帮助|功能列表)"), "help", None),
     (re.compile(r"(充值|充钱|付费|购买|买|开通|解锁).{0,5}(USDT|会员|高级|功能)?"), "recharge", None),
     (re.compile(r"(余额|账户|剩余|还[有剩]几次|用量|额度)"), "balance", None),
+    (re.compile(r"(别|不要|关掉|关闭|停止).{0,5}(主动|推送|通知|打扰|消息)"), "notify_off", None),
+    (re.compile(r"(开启|打开|开始).{0,5}(主动|推送|通知|提醒)"), "notify_on", None),
 ]
 
 # 明显是普通聊天的模式（直接短路，不调 LLM）
@@ -175,7 +177,8 @@ class IntentRouter:
             # 校验 intent 合法性
             valid_intents = {
                 "tarot", "tarot_history", "memory", "forget",
-                "clear_history", "fortune", "luck", "intro", "help", "chat"
+                "clear_history", "fortune", "luck", "intro", "help", "chat",
+                "recharge", "balance", "notify_off", "notify_on",
             }
             if intent not in valid_intents:
                 logger.warning(f"⚠️ 未知意图 '{intent}'，回退到 chat")

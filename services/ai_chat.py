@@ -178,7 +178,7 @@ class ElenaAI:
         """
         
         if not self.client:
-            return "抱歉，我现在状态有些不稳定，暂时无法回复。\n\n可以过一会儿再试试，或者先使用 /tarot 命令占卜。"
+            return "抱歉，我现在状态有些不稳定... 过一会儿再找我吧~ 😅"
         
         try:
             # --- Input Guardrail: 检查用户输入 ---
@@ -310,7 +310,7 @@ class ElenaAI:
             
         except openai.APIError as e:
             logger.error(f"❌ OpenAI API 错误: {e}")
-            return "抱歉，我现在状态有些不稳定。\n\n你可以过一会儿再找我，或者先使用 /tarot 命令占卜。"
+            return "抱歉，我刚才有点状况... 过一会儿再来找我吧~"
         
         except Exception as e:
             logger.error(f"❌ AI对话异常: {e}", exc_info=True)

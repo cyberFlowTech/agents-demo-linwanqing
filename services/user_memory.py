@@ -217,6 +217,29 @@ class UserMemoryManager:
 
         count = memory.get('conversation_count', 0)
         parts.append(f"（已与我对话 {count} 次）")
+
+        # 对话时间距离感知
+        last_updated = memory.get('last_updated', '')
+        if last_updated:
+            from datetime import datetime as _dt
+            try:
+                last_dt = _dt.fromisoformat(last_updated)
+                days_ago = (_dt.now() - last_dt).days
+                if days_ago == 0:
+                    parts.append("（今天已经聊过，这是继续的对话）")
+                elif days_ago == 1:
+                    parts.append("（昨天聊过，今天又来了）")
+                elif days_ago <= 3:
+                    parts.append(f"（{days_ago}天前聊过）")
+                elif days_ago <= 7:
+                    parts.append("（差不多一周没来了，可以自然地表达重逢的亲切感）")
+                elif days_ago <= 30:
+                    parts.append(f"（有{days_ago}天没来了，算是好久不见，打个招呼吧）")
+                else:
+                    parts.append(f"（已经{days_ago}天没来了，很久没见了，要热情一些）")
+            except Exception:
+                pass
+
         parts.append("当用户问关于自己的问题时，直接用上面的信息回答，像朋友一样自然地说出来。")
 
         return "\n".join(parts)
